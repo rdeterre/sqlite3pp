@@ -1,0 +1,37 @@
+language: cpp
+os:
+ - linux
+sudo: true
+notifications:
+ email:
+  on_success: change # [always|never|change] # default: change
+  on_failure: always # [always|never|change] # default: always
+
+addons:
+  apt:
+    sources:
+    - ubuntu-toolchain-r-test
+    packages:
+    - g++-5
+
+env:
+ - CPP=g++-5   NO_EXCEPTIONS=OFF NO_RTTI=OFF BUILD_TYPE=Release
+ - CPP=g++-5   NO_EXCEPTIONS=OFF NO_RTTI=OFF BUILD_TYPE=Debug
+ - CPP=g++-5   NO_EXCEPTIONS=ON  NO_RTTI=OFF BUILD_TYPE=Release
+ - CPP=g++-5   NO_EXCEPTIONS=ON  NO_RTTI=ON  BUILD_TYPE=Release
+
+install:
+ - wget http://downloads.conan.io/latest_debian -O conan.deb || exit 1
+ - sudo dpkg -i conan.deb || exit 1
+ - rm conan.deb || exit 1
+
+script:
+ - mkdir build
+ - pushd build
+ - conan install .. || exit 1
+ - CXX=$CPP cmake .. -DSILICIUM_NO_EXCEPTIONS=$NO_EXCEPTIONS -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DSILICIUM_NO_RTTI=$NO_RTTI -DSILICIUM_WARNING_IS_ERROR=ON || exit 1
+ - cmake --build . -- -j2 || exit 1
+ - pushd test
+ - if [ $NO_RTTI != "ON" ]; then
+     ./unit_test || exit 1;
+   fi
