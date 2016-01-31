@@ -24,7 +24,7 @@ if(UNIX)
 
 	add_definitions("-Wall -Wextra -Wconversion -Wvla")
 
-	if(SILICIUM_WARNING_IS_ERROR)
+	if(SQLITE3PP_WARNING_IS_ERROR)
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
 	endif()
 
