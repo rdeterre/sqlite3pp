@@ -30,7 +30,7 @@ install:
 script:
  - mkdir build
  - pushd build
- - conan install $CONAN .. || exit 1
+ - conan install $CONAN --build=missing .. || exit 1
  - CXX=$CPP cmake .. -DSILICIUM_NO_EXCEPTIONS=$NO_EXCEPTIONS -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DSILICIUM_NO_RTTI=$NO_RTTI -DSILICIUM_WARNING_IS_ERROR=ON || exit 1
  - cmake --build . -- -j2 || exit 1
  - pushd test
