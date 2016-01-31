@@ -26,6 +26,13 @@ install:
  - wget http://downloads.conan.io/latest_debian -O conan.deb || exit 1
  - sudo dpkg -i conan.deb || exit 1
  - rm conan.deb || exit 1
+ - conan --version
+
+ - wget https://s3.amazonaws.com/biibinaries/thirdparty/cmake-3.0.2-Linux-64.tar.gz
+ - tar -xzf cmake-3.0.2-Linux-64.tar.gz
+ - sudo cp -fR cmake-3.0.2-Linux-64/* /usr
+ - rm -rf cmake-3.0.2-Linux-64
+ - rm cmake-3.0.2-Linux-64.tar.gz
 
 script:
  - mkdir build
