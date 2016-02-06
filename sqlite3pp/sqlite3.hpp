@@ -105,13 +105,13 @@ namespace sqlite3pp
 
 	inline boost::system::error_code bind(sqlite3_stmt &statement, positive_int zero_based_index, sqlite3_int64 value)
 	{
-		return make_error_code(sqlite3_bind_int64(&statement, zero_based_index.value(), value));
+		return make_error_code(sqlite3_bind_int64(&statement, zero_based_index.value() + 1, value));
 	}
 
 	inline boost::system::error_code bind(sqlite3_stmt &statement, positive_int zero_based_index, char const &begin,
 	                                      int length)
 	{
-		return make_error_code(sqlite3_bind_text(&statement, zero_based_index.value(), &begin, length, nullptr));
+		return make_error_code(sqlite3_bind_text(&statement, zero_based_index.value() + 1, &begin, length, nullptr));
 	}
 
 	enum class step_result

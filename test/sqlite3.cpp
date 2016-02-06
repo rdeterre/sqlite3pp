@@ -66,7 +66,7 @@ BOOST_AUTO_TEST_CASE(sqlite_bind_int64)
 {
 	sqlite3pp::database_handle database = sqlite3pp::open_existing(":memory:").move_value();
 	sqlite3pp::statement_handle statement = sqlite3pp::prepare(*database, "SELECT ?").move_value();
-	BOOST_CHECK(!sqlite3pp::bind(*statement, sqlite3pp::positive_int::literal<1>(), 123456));
+	BOOST_CHECK(!sqlite3pp::bind(*statement, sqlite3pp::positive_int::literal<0>(), 123456));
 }
 
 BOOST_AUTO_TEST_CASE(sqlite_bind_text)
@@ -74,7 +74,7 @@ BOOST_AUTO_TEST_CASE(sqlite_bind_text)
 	sqlite3pp::database_handle database = sqlite3pp::open_existing(":memory:").move_value();
 	sqlite3pp::statement_handle statement = sqlite3pp::prepare(*database, "SELECT ?").move_value();
 	Si::memory_range const expected = Si::make_c_str_range("abc");
-	BOOST_CHECK(!sqlite3pp::bind(*statement, sqlite3pp::positive_int::literal<1>(), *expected.begin(),
+	BOOST_CHECK(!sqlite3pp::bind(*statement, sqlite3pp::positive_int::literal<0>(), *expected.begin(),
 	                             static_cast<int>(expected.size())));
 	BOOST_REQUIRE_EQUAL(sqlite3pp::step_result::row, sqlite3pp::step(*statement).get());
 	BOOST_REQUIRE_EQUAL(sqlite3pp::positive_int::literal<1>(), sqlite3pp::column_count(*statement));
