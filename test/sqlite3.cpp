@@ -132,6 +132,7 @@ BOOST_AUTO_TEST_CASE(begin_transaction_commit)
 	BOOST_CHECK_EQUAL(1, sqlite3pp::column_int64(*select, sqlite3pp::positive_int::literal<0>()));
 }
 
+#if SILICIUM_HAS_EXCEPTIONS
 BOOST_AUTO_TEST_CASE(begin_transaction_throw)
 {
 	sqlite3pp::database_handle database = sqlite3pp::open_existing(":memory:").move_value();
@@ -156,3 +157,4 @@ BOOST_AUTO_TEST_CASE(begin_transaction_throw)
 	BOOST_REQUIRE_EQUAL(sqlite3pp::step_result::row, sqlite3pp::step(*select).move_value());
 	BOOST_CHECK_EQUAL(0, sqlite3pp::column_int64(*select, sqlite3pp::positive_int::literal<0>()));
 }
+#endif

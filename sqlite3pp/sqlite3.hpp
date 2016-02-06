@@ -169,15 +169,19 @@ namespace sqlite3pp
 	{
 		step(*prepare(database, "BEGIN").move_value()).move_value();
 		Si::optional<decltype(std::forward<Action>(transaction_content)())> result;
+#if SILICIUM_HAS_EXCEPTIONS
 		try
+#endif
 		{
 			result = std::forward<Action>(transaction_content)();
 		}
+#if SILICIUM_HAS_EXCEPTIONS
 		catch (...)
 		{
 			step(*prepare(database, "ROLLBACK").move_value()).move_value();
 			throw;
 		}
+#endif
 		step(*prepare(database, "COMMIT").move_value()).move_value();
 		return *std::move(result);
 	}
