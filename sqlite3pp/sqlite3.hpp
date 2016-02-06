@@ -163,6 +163,24 @@ namespace sqlite3pp
 		int length = sqlite3_column_bytes(&statement, zero_based_index.value());
 		return Si::memory_range(data, data + length);
 	}
+
+	template <class Action>
+	auto begin_transaction(sqlite3 &database, Action &&transaction_content)
+	{
+		step(*prepare(database, "BEGIN").move_value()).move_value();
+		Si::optional<decltype(std::forward<Action>(transaction_content)())> result;
+		try
+		{
+			result = std::forward<Action>(transaction_content)();
+		}
+		catch (...)
+		{
+			step(*prepare(database, "ROLLBACK").move_value()).move_value();
+			throw;
+		}
+		step(*prepare(database, "COMMIT").move_value()).move_value();
+		return *std::move(result);
+	}
 }
 
 #endif

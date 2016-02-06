@@ -111,3 +111,48 @@ BOOST_AUTO_TEST_CASE(sqlite_column_text)
 	Si::memory_range const got = sqlite3pp::column_text(*statement, sqlite3pp::positive_int::literal<0>());
 	BOOST_CHECK_EQUAL_COLLECTIONS(expected.begin(), expected.end(), got.begin(), got.end());
 }
+
+BOOST_AUTO_TEST_CASE(begin_transaction_commit)
+{
+	sqlite3pp::database_handle database = sqlite3pp::open_existing(":memory:").move_value();
+	sqlite3pp::step(*sqlite3pp::prepare(*database, "CREATE TABLE \"test\" (\"field\" INTEGER NOT NULL)").move_value())
+	    .move_value();
+	BOOST_CHECK_EQUAL(
+	    456, sqlite3pp::begin_transaction(
+	             *database, [&database]()
+	             {
+		             sqlite3pp::step(
+		                 *sqlite3pp::prepare(*database, "INSERT INTO \"test\" (\"field\") VALUES (123)").move_value())
+		                 .move_value();
+		             return 456;
+		         }));
+	sqlite3pp::statement_handle const select =
+	    sqlite3pp::prepare(*database, "SELECT COUNT(*) FROM \"test\"").move_value();
+	BOOST_REQUIRE_EQUAL(sqlite3pp::step_result::row, sqlite3pp::step(*select).move_value());
+	BOOST_CHECK_EQUAL(1, sqlite3pp::column_int64(*select, sqlite3pp::positive_int::literal<0>()));
+}
+
+BOOST_AUTO_TEST_CASE(begin_transaction_throw)
+{
+	sqlite3pp::database_handle database = sqlite3pp::open_existing(":memory:").move_value();
+	sqlite3pp::step(*sqlite3pp::prepare(*database, "CREATE TABLE \"test\" (\"field\" INTEGER NOT NULL)").move_value())
+	    .move_value();
+	BOOST_CHECK_EXCEPTION(
+	    sqlite3pp::begin_transaction(
+	        *database,
+	        [&database]() -> int
+	        {
+		        sqlite3pp::step(
+		            *sqlite3pp::prepare(*database, "INSERT INTO \"test\" (\"field\") VALUES (123)").move_value())
+		            .move_value();
+		        throw std::runtime_error("rollback");
+		    }),
+	    std::runtime_error, [](std::runtime_error const &ex)
+	    {
+		    return ex.what() == std::string("rollback");
+		});
+	sqlite3pp::statement_handle const select =
+	    sqlite3pp::prepare(*database, "SELECT COUNT(*) FROM \"test\"").move_value();
+	BOOST_REQUIRE_EQUAL(sqlite3pp::step_result::row, sqlite3pp::step(*select).move_value());
+	BOOST_CHECK_EQUAL(0, sqlite3pp::column_int64(*select, sqlite3pp::positive_int::literal<0>()));
+}
