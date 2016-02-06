@@ -166,6 +166,7 @@ namespace sqlite3pp
 
 	template <class Action>
 	auto begin_transaction(sqlite3 &database, Action &&transaction_content)
+		-> decltype(std::forward<Action>(transaction_content)())
 	{
 		step(*prepare(database, "BEGIN").move_value()).move_value();
 		Si::optional<decltype(std::forward<Action>(transaction_content)())> result;
