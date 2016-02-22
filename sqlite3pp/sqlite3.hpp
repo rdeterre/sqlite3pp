@@ -4,6 +4,7 @@
 #include <silicium/c_string.hpp>
 #include <silicium/memory_range.hpp>
 #include <silicium/error_or.hpp>
+#include <silicium/array_view.hpp>
 #include <silicium/bounded_int.hpp>
 #include <sqlite3.h>
 #include <memory>
@@ -108,10 +109,20 @@ namespace sqlite3pp
 		return make_error_code(sqlite3_bind_int64(&statement, zero_based_index.value() + 1, value));
 	}
 
-	inline boost::system::error_code bind(sqlite3_stmt &statement, positive_int zero_based_index, char const &begin,
-	                                      int length)
+	typedef Si::bounded_int<int, 0,
+#if SILICIUM_COMPILER_HAS_CONSTEXPR_NUMERIC_LIMITS
+	                        (std::numeric_limits<int>::max)()
+#else
+	                        INT_MAX
+#endif
+	                        > text_length;
+
+	typedef Si::array_view<char const, text_length> text_view;
+
+	inline boost::system::error_code bind(sqlite3_stmt &statement, positive_int zero_based_index, text_view data)
 	{
-		return make_error_code(sqlite3_bind_text(&statement, zero_based_index.value() + 1, &begin, length, nullptr));
+		return make_error_code(
+		    sqlite3_bind_text(&statement, zero_based_index.value() + 1, data.begin(), data.length().value(), nullptr));
 	}
 
 	enum class step_result
@@ -166,7 +177,7 @@ namespace sqlite3pp
 
 	template <class Action>
 	auto begin_transaction(sqlite3 &database, Action &&transaction_content)
-		-> decltype(std::forward<Action>(transaction_content)())
+	    -> decltype(std::forward<Action>(transaction_content)())
 	{
 		step(*prepare(database, "BEGIN").move_value()).move_value();
 		Si::optional<decltype(std::forward<Action>(transaction_content)())> result;
