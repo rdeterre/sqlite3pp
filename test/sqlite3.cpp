@@ -74,10 +74,9 @@ BOOST_AUTO_TEST_CASE(sqlite_bind_text)
 	sqlite3pp::database_handle database = sqlite3pp::open_existing(":memory:").move_value();
 	sqlite3pp::statement_handle statement = sqlite3pp::prepare(*database, "SELECT ?").move_value();
 	Si::memory_range const expected = Si::make_c_str_range("abc");
-	BOOST_CHECK(
-	    !sqlite3pp::bind(*statement, sqlite3pp::positive_int::literal<0>(),
-	                     sqlite3pp::text_view::array_view(
-	                         *expected.begin(), sqlite3pp::text_length::create(static_cast<int>(expected.size()))
+	BOOST_CHECK(!sqlite3pp::bind(
+	    *statement, sqlite3pp::positive_int::literal<0>(),
+	    sqlite3pp::text_view(*expected.begin(), sqlite3pp::text_length::create(static_cast<int>(expected.size()))
 	                                                .or_throw([]
 	                                                          {
 		                                                          BOOST_FAIL("cannot fail");
