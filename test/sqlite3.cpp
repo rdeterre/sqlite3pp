@@ -168,7 +168,7 @@ BOOST_AUTO_TEST_CASE(begin_transaction_throw)
 BOOST_AUTO_TEST_CASE(sqlite_checked_statement_handle)
 {
 	sqlite3pp::database_handle database = sqlite3pp::open_existing(":memory:").move_value();
-	sqlite3pp::checked_statement_handle<3, 4> statement =
+	sqlite3pp::checked_statement<3, 4> statement =
 	    sqlite3pp::prepare_checked<3, 4>(*database, "SELECT ?, ?, ?, -3").move_value();
 	statement.bind(Si::literal<int, 0>(), static_cast<sqlite3_int64>(123));
 	statement.bind(Si::literal<int, 1>(), 456.0);

@@ -6,14 +6,14 @@
 namespace sqlite3pp
 {
 	template <std::uint16_t BoundArguments, std::uint16_t ResultColumns>
-	struct checked_statement_handle
+	struct checked_statement
 	{
 		typedef Si::bounded_int<int, 0, BoundArguments - 1> argument_index;
 		typedef Si::bounded_int<int, 0, ResultColumns - 1> column_index;
 
 		statement_handle statement;
 
-		explicit checked_statement_handle(statement_handle statement)
+		explicit checked_statement(statement_handle statement)
 		    : statement(std::move(statement))
 		{
 		}
@@ -41,12 +41,12 @@ namespace sqlite3pp
 	};
 
 	template <std::uint16_t BoundArguments, std::uint16_t ResultColumns>
-	Si::error_or<checked_statement_handle<BoundArguments, ResultColumns>> prepare_checked(sqlite3 &database,
-	                                                                                      Si::c_string query)
+	Si::error_or<checked_statement<BoundArguments, ResultColumns>> prepare_checked(sqlite3 &database,
+	                                                                               Si::c_string query)
 	{
 		return Si::map(prepare(database, query), [](statement_handle statement)
 		               {
-			               return checked_statement_handle<BoundArguments, ResultColumns>(std::move(statement));
+			               return checked_statement<BoundArguments, ResultColumns>(std::move(statement));
 			           });
 	}
 }
