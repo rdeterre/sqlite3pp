@@ -55,5 +55,5 @@ script:
  - cmake --build . -- -j2 || exit 1
  - pushd bin
  - if [ $NO_RTTI != "ON" ]; then
-     ./unit_test || exit 1;
+     ./tests || exit 1;
    fi
