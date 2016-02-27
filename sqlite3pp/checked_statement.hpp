@@ -1,7 +1,7 @@
 #ifndef SQLITE3PP_CHECKED_STATEMENT_HPP
 #define SQLITE3PP_CHECKED_STATEMENT_HPP
 
-#include <sqlite3pp/sqlite3.hpp>
+#include <sqlite3pp/statement.hpp>
 
 namespace sqlite3pp
 {
