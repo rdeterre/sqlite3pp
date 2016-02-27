@@ -2,14 +2,17 @@
 #define SQLITE3PP_CHECKED_STATEMENT_HPP
 
 #include <sqlite3pp/statement.hpp>
+#include <boost/mpl/vector.hpp>
+#include <boost/mpl/size.hpp>
+#include <boost/mpl/at.hpp>
 
 namespace sqlite3pp
 {
-	template <std::uint16_t BoundArguments, std::uint16_t ResultColumns>
+	template <class BoundArguments, class ResultColumns>
 	struct checked_statement
 	{
-		typedef Si::bounded_int<int, 0, BoundArguments - 1> argument_index;
-		typedef Si::bounded_int<int, 0, ResultColumns - 1> column_index;
+		typedef Si::bounded_int<int, 0, boost::mpl::size<BoundArguments>::value - 1> argument_index;
+		typedef Si::bounded_int<int, 0, boost::mpl::size<ResultColumns>::value - 1> column_index;
 
 		statement_handle statement;
 
@@ -18,10 +21,11 @@ namespace sqlite3pp
 		{
 		}
 
-		template <class Value>
-		boost::system::error_code bind(argument_index argument, Value const &value)
+		template <int Index>
+		boost::system::error_code
+		bind(typename boost::mpl::at<BoundArguments, boost::mpl::int_<Index>>::type const &value)
 		{
-			return sqlite3pp::bind(*statement, argument, value);
+			return sqlite3pp::bind(*statement, Si::literal<int, Index>(), value);
 		}
 
 		sqlite3_int64 column_int64(column_index column)
@@ -40,7 +44,7 @@ namespace sqlite3pp
 		}
 	};
 
-	template <std::uint16_t BoundArguments, std::uint16_t ResultColumns>
+	template <class BoundArguments, class ResultColumns>
 	Si::error_or<checked_statement<BoundArguments, ResultColumns>> prepare_checked(sqlite3 &database,
 	                                                                               Si::c_string query)
 	{
