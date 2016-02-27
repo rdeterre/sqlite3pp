@@ -1,4 +1,4 @@
-#include <sqlite3pp/sqlite3.hpp>
+#include <sqlite3pp/checked_statement.hpp>
 #include <boost/test/unit_test.hpp>
 #include <boost/range/algorithm/equal.hpp>
 
