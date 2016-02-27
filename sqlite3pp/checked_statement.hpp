@@ -1,6 +1,7 @@
 #ifndef SQLITE3PP_CHECKED_STATEMENT_HPP
 #define SQLITE3PP_CHECKED_STATEMENT_HPP
 
+#include <silicium/identity.hpp>
 #include <sqlite3pp/statement.hpp>
 #include <boost/mpl/vector.hpp>
 #include <boost/mpl/size.hpp>
@@ -8,6 +9,24 @@
 
 namespace sqlite3pp
 {
+	namespace detail
+	{
+		inline sqlite3_int64 column(sqlite3_stmt &statement, positive_int index, Si::identity<sqlite3_int64>)
+		{
+			return column_int64(statement, index);
+		}
+
+		inline double column(sqlite3_stmt &statement, positive_int index, Si::identity<double>)
+		{
+			return column_double(statement, index);
+		}
+
+		inline Si::memory_range column(sqlite3_stmt &statement, positive_int index, Si::identity<Si::memory_range>)
+		{
+			return column_text(statement, index);
+		}
+	}
+
 	template <class BoundArguments, class ResultColumns>
 	struct checked_statement
 	{
@@ -28,19 +47,12 @@ namespace sqlite3pp
 			return sqlite3pp::bind(*statement, Si::literal<int, Index>(), value);
 		}
 
-		sqlite3_int64 column_int64(column_index column)
+		template <int Index>
+		typename boost::mpl::at<ResultColumns, boost::mpl::int_<Index>>::type column()
 		{
-			return sqlite3pp::column_int64(*statement, column);
-		}
-
-		double column_double(column_index column)
-		{
-			return sqlite3pp::column_double(*statement, column);
-		}
-
-		Si::memory_range column_text(column_index column)
-		{
-			return sqlite3pp::column_text(*statement, column);
+			return detail::column(
+			    *statement, Si::literal<int, Index>(),
+			    Si::identity<typename boost::mpl::at<ResultColumns, boost::mpl::int_<Index>>::type>());
 		}
 	};
 
