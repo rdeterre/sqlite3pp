@@ -73,6 +73,11 @@ namespace sqlite3pp
 		}
 		return database_handle(database);
 	}
+
+	inline Si::c_string last_error_message(sqlite3 &database)
+	{
+		return Si::c_string(sqlite3_errmsg(&database));
+	}
 }
 
 #endif
