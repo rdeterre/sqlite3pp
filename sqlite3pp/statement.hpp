@@ -57,8 +57,9 @@ namespace sqlite3pp
 
 	inline boost::system::error_code bind(sqlite3_stmt &statement, positive_int zero_based_index, text_view data)
 	{
+		char const *const ptr = data.empty() ? "" : data.begin();
 		return make_error_code(
-		    sqlite3_bind_text(&statement, zero_based_index.value() + 1, data.begin(), data.length().value(), nullptr));
+		    sqlite3_bind_text(&statement, zero_based_index.value() + 1, ptr, data.length().value(), nullptr));
 	}
 
 	enum class step_result

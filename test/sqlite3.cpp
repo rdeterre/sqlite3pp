@@ -88,6 +88,24 @@ BOOST_AUTO_TEST_CASE(sqlite_bind_text)
 	BOOST_CHECK_EQUAL_COLLECTIONS(expected.begin(), expected.end(), got.begin(), got.end());
 }
 
+BOOST_AUTO_TEST_CASE(statement_bind_empty_text)
+{
+	sqlite3pp::database_handle database = sqlite3pp::open_existing(":memory:").move_value();
+	sqlite3pp::step(*sqlite3pp::prepare(*database, "CREATE TABLE \"test\" (\"field\" TEXT NOT NULL)").move_value())
+	    .move_value();
+	{
+		sqlite3pp::statement_handle insert =
+		    sqlite3pp::prepare(*database, "INSERT INTO \"test\" (\"field\") VALUES (?)").move_value();
+		BOOST_REQUIRE_EQUAL(sqlite3pp::make_error_code(0),
+		                    sqlite3pp::bind(*insert, Si::literal<int, 0>(), sqlite3pp::text_view()));
+		BOOST_REQUIRE_EQUAL(sqlite3pp::step_result::done, sqlite3pp::step(*insert).move_value());
+	}
+	sqlite3pp::statement_handle select = sqlite3pp::prepare(*database, "SELECT \"field\" FROM \"test\"").move_value();
+	BOOST_REQUIRE_EQUAL(sqlite3pp::step_result::row, sqlite3pp::step(*select).move_value());
+	BOOST_CHECK(sqlite3pp::column_text(*select, Si::literal<int, 0>()).empty());
+	BOOST_CHECK_EQUAL(sqlite3pp::step_result::done, sqlite3pp::step(*select).move_value());
+}
+
 BOOST_AUTO_TEST_CASE(sqlite_step)
 {
 	sqlite3pp::database_handle database = sqlite3pp::open_existing(":memory:").move_value();
