@@ -39,7 +39,7 @@ install:
 script:
  - mkdir build
  - pushd build
- - CXX=$CPP CC=$GCC conan install -s compiler=gcc $CONAN .. || exit 1
+ - CXX=$CPP CC=$GCC conan install --build sqlite3 -s compiler=gcc $CONAN .. || exit 1
  - CXX=$CPP CC=$GCC cmake .. -DSQLITE3PP_NO_EXCEPTIONS=$NO_EXCEPTIONS -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DSQLITE3PP_NO_RTTI=$NO_RTTI -DSQLITE3PP_WARNING_IS_ERROR=OFF || exit 1
  - cmake --build . -- -j2 || exit 1
  - pushd bin
