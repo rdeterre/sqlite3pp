@@ -5,7 +5,7 @@ class SiliciumConan(ConanFile):
     name = "sqlite3pp"
     version = "0.7"
     generators = "cmake"
-    requires = "silicium/0.8@TyRoXx/master", "sqlite3/3.10.2@TyRoXx/stable"
+    requires = "silicium/0.9@TyRoXx/master", "sqlite3/3.10.2@TyRoXx/stable"
     url="http://github.com/tyroxx/sqlite3pp"
     license="MIT"
     exports="sqlite3pp/*"
