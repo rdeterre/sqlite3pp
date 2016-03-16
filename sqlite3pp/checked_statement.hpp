@@ -11,17 +11,19 @@ namespace sqlite3pp
 {
 	namespace detail
 	{
-		inline sqlite3_int64 column(sqlite3_stmt &statement, positive_int index, Si::identity<sqlite3_int64>)
+		inline Si::optional<sqlite3_int64> column(sqlite3_stmt &statement, positive_int index,
+		                                          Si::identity<sqlite3_int64>)
 		{
 			return column_int64(statement, index);
 		}
 
-		inline double column(sqlite3_stmt &statement, positive_int index, Si::identity<double>)
+		inline Si::optional<double> column(sqlite3_stmt &statement, positive_int index, Si::identity<double>)
 		{
 			return column_double(statement, index);
 		}
 
-		inline Si::memory_range column(sqlite3_stmt &statement, positive_int index, Si::identity<Si::memory_range>)
+		inline Si::optional<Si::memory_range> column(sqlite3_stmt &statement, positive_int index,
+		                                             Si::identity<Si::memory_range>)
 		{
 			return column_text(statement, index);
 		}
@@ -48,7 +50,7 @@ namespace sqlite3pp
 		}
 
 		template <int Index>
-		typename boost::mpl::at<ResultColumns, boost::mpl::int_<Index>>::type column()
+		Si::optional<typename boost::mpl::at<ResultColumns, boost::mpl::int_<Index>>::type> column()
 		{
 			return detail::column(
 			    *statement, Si::literal<int, Index>(),

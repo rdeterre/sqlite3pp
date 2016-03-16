@@ -92,24 +92,78 @@ namespace sqlite3pp
 		return *positive_int::create(sqlite3_column_count(&statement));
 	}
 
-	inline sqlite3_int64 column_int64(sqlite3_stmt &statement, positive_int zero_based_index)
+	namespace detail
 	{
-		assert(zero_based_index < column_count(statement));
-		return sqlite3_column_int64(&statement, zero_based_index.value());
+		enum class type
+		{
+			integer = SQLITE_INTEGER,
+			float_ = SQLITE_FLOAT,
+			blob = SQLITE_BLOB,
+			null = SQLITE_NULL,
+			text = SQLITE_TEXT
+		};
+
+		inline type column_type(sqlite3_stmt &statement, positive_int zero_based_index)
+		{
+			assert(zero_based_index < column_count(statement));
+			return static_cast<type>(sqlite3_column_type(&statement, zero_based_index.value()));
+		}
 	}
 
-	inline double column_double(sqlite3_stmt &statement, positive_int zero_based_index)
+	inline Si::optional<sqlite3_int64> column_int64(sqlite3_stmt &statement, positive_int zero_based_index)
 	{
 		assert(zero_based_index < column_count(statement));
-		return sqlite3_column_double(&statement, zero_based_index.value());
+		switch (detail::column_type(statement, zero_based_index))
+		{
+		case detail::type::integer:
+			return sqlite3_column_int64(&statement, zero_based_index.value());
+
+		case detail::type::float_:
+		case detail::type::blob:
+		case detail::type::null:
+		case detail::type::text:
+			return Si::none;
+		}
+		SILICIUM_UNREACHABLE();
 	}
 
-	inline Si::memory_range column_text(sqlite3_stmt &statement, positive_int zero_based_index)
+	inline Si::optional<double> column_double(sqlite3_stmt &statement, positive_int zero_based_index)
 	{
 		assert(zero_based_index < column_count(statement));
-		char const *data = reinterpret_cast<char const *>(sqlite3_column_text(&statement, zero_based_index.value()));
-		int length = sqlite3_column_bytes(&statement, zero_based_index.value());
-		return Si::memory_range(data, data + length);
+		switch (detail::column_type(statement, zero_based_index))
+		{
+		case detail::type::float_:
+			return sqlite3_column_double(&statement, zero_based_index.value());
+
+		case detail::type::integer:
+		case detail::type::blob:
+		case detail::type::null:
+		case detail::type::text:
+			return Si::none;
+		}
+		SILICIUM_UNREACHABLE();
+	}
+
+	inline Si::optional<Si::memory_range> column_text(sqlite3_stmt &statement, positive_int zero_based_index)
+	{
+		assert(zero_based_index < column_count(statement));
+		switch (detail::column_type(statement, zero_based_index))
+		{
+		case detail::type::text:
+		{
+			char const *data =
+			    reinterpret_cast<char const *>(sqlite3_column_text(&statement, zero_based_index.value()));
+			int length = sqlite3_column_bytes(&statement, zero_based_index.value());
+			return Si::memory_range(data, data + length);
+		}
+
+		case detail::type::integer:
+		case detail::type::float_:
+		case detail::type::blob:
+		case detail::type::null:
+			return Si::none;
+		}
+		SILICIUM_UNREACHABLE();
 	}
 
 	template <class Action>

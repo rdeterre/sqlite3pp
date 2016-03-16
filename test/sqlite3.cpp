@@ -84,8 +84,9 @@ BOOST_AUTO_TEST_CASE(sqlite_bind_text)
 		                                                      }))));
 	BOOST_REQUIRE_EQUAL(sqlite3pp::step_result::row, sqlite3pp::step(*statement).get());
 	BOOST_REQUIRE_EQUAL((Si::literal<int, 1>()), sqlite3pp::column_count(*statement));
-	Si::memory_range const got = sqlite3pp::column_text(*statement, Si::literal<int, 0>());
-	BOOST_CHECK_EQUAL_COLLECTIONS(expected.begin(), expected.end(), got.begin(), got.end());
+	Si::optional<Si::memory_range> const got = sqlite3pp::column_text(*statement, Si::literal<int, 0>());
+	BOOST_REQUIRE(got);
+	BOOST_CHECK_EQUAL_COLLECTIONS(expected.begin(), expected.end(), got->begin(), got->end());
 }
 
 BOOST_AUTO_TEST_CASE(statement_bind_empty_text)
@@ -102,7 +103,9 @@ BOOST_AUTO_TEST_CASE(statement_bind_empty_text)
 	}
 	sqlite3pp::statement_handle select = sqlite3pp::prepare(*database, "SELECT \"field\" FROM \"test\"").move_value();
 	BOOST_REQUIRE_EQUAL(sqlite3pp::step_result::row, sqlite3pp::step(*select).move_value());
-	BOOST_CHECK(sqlite3pp::column_text(*select, Si::literal<int, 0>()).empty());
+	Si::optional<Si::memory_range> const selected = sqlite3pp::column_text(*select, Si::literal<int, 0>());
+	BOOST_REQUIRE(selected);
+	BOOST_CHECK(selected->empty());
 	BOOST_CHECK_EQUAL(sqlite3pp::step_result::done, sqlite3pp::step(*select).move_value());
 }
 
@@ -112,7 +115,7 @@ BOOST_AUTO_TEST_CASE(sqlite_step)
 	sqlite3pp::statement_handle statement = sqlite3pp::prepare(*database, "SELECT 1").move_value();
 	BOOST_REQUIRE_EQUAL(sqlite3pp::step_result::row, sqlite3pp::step(*statement).get());
 	BOOST_REQUIRE_EQUAL((Si::literal<int, 1>()), sqlite3pp::column_count(*statement));
-	BOOST_CHECK_EQUAL(1, sqlite3pp::column_int64(*statement, Si::literal<int, 0>()));
+	BOOST_CHECK_EQUAL(static_cast<sqlite3_int64>(1), sqlite3pp::column_int64(*statement, Si::literal<int, 0>()));
 	BOOST_CHECK_EQUAL(sqlite3pp::step_result::done, sqlite3pp::step(*statement).get());
 }
 
@@ -132,8 +135,9 @@ BOOST_AUTO_TEST_CASE(sqlite_column_text)
 	BOOST_REQUIRE_EQUAL(sqlite3pp::step_result::row, sqlite3pp::step(*statement).get());
 	BOOST_REQUIRE_EQUAL((Si::literal<int, 1>()), sqlite3pp::column_count(*statement));
 	Si::memory_range const expected = Si::make_c_str_range("abc");
-	Si::memory_range const got = sqlite3pp::column_text(*statement, Si::literal<int, 0>());
-	BOOST_CHECK_EQUAL_COLLECTIONS(expected.begin(), expected.end(), got.begin(), got.end());
+	Si::optional<Si::memory_range> const got = sqlite3pp::column_text(*statement, Si::literal<int, 0>());
+	BOOST_REQUIRE(got);
+	BOOST_CHECK_EQUAL_COLLECTIONS(expected.begin(), expected.end(), got->begin(), got->end());
 }
 
 BOOST_AUTO_TEST_CASE(begin_transaction_commit)
@@ -153,7 +157,7 @@ BOOST_AUTO_TEST_CASE(begin_transaction_commit)
 	sqlite3pp::statement_handle const select =
 	    sqlite3pp::prepare(*database, "SELECT COUNT(*) FROM \"test\"").move_value();
 	BOOST_REQUIRE_EQUAL(sqlite3pp::step_result::row, sqlite3pp::step(*select).move_value());
-	BOOST_CHECK_EQUAL(1, sqlite3pp::column_int64(*select, Si::literal<int, 0>()));
+	BOOST_CHECK_EQUAL(static_cast<sqlite3_int64>(1), sqlite3pp::column_int64(*select, Si::literal<int, 0>()));
 }
 
 #if SILICIUM_HAS_EXCEPTIONS
@@ -179,7 +183,7 @@ BOOST_AUTO_TEST_CASE(begin_transaction_throw)
 	sqlite3pp::statement_handle const select =
 	    sqlite3pp::prepare(*database, "SELECT COUNT(*) FROM \"test\"").move_value();
 	BOOST_REQUIRE_EQUAL(sqlite3pp::step_result::row, sqlite3pp::step(*select).move_value());
-	BOOST_CHECK_EQUAL(0, sqlite3pp::column_int64(*select, Si::literal<int, 0>()));
+	BOOST_CHECK_EQUAL(static_cast<sqlite3_int64>(0), sqlite3pp::column_int64(*select, Si::literal<int, 0>()));
 }
 #endif
 
@@ -187,17 +191,70 @@ BOOST_AUTO_TEST_CASE(sqlite_checked_statement_handle)
 {
 	sqlite3pp::database_handle database = sqlite3pp::open_existing(":memory:").move_value();
 	typedef boost::mpl::vector<sqlite3_int64, double, sqlite3pp::text_view> bound;
-	typedef boost::mpl::vector<sqlite3_int64, double, Si::memory_range, sqlite3_int64> columns;
+	typedef boost::mpl::vector<sqlite3_int64, double, Si::memory_range, sqlite3_int64, Si::memory_range> columns;
 	sqlite3pp::checked_statement<bound, columns> statement =
-	    sqlite3pp::prepare_checked<bound, columns>(*database, "SELECT ?, ?, ?, -3").move_value();
+	    sqlite3pp::prepare_checked<bound, columns>(*database, "SELECT ?, ?, ?, -3, NULL").move_value();
 	statement.bind<0>(static_cast<sqlite3_int64>(123));
 	statement.bind<1>(456.0);
 	statement.bind<2>(sqlite3pp::text_view(*"abc", Si::literal<int, 3>()));
 	BOOST_REQUIRE_EQUAL(sqlite3pp::step_result::row, sqlite3pp::step(*statement.statement).get());
-	BOOST_REQUIRE_EQUAL((Si::literal<int, 4>()), sqlite3pp::column_count(*statement.statement));
-	BOOST_CHECK_EQUAL(123, statement.column<0>());
+	BOOST_REQUIRE_EQUAL((Si::literal<int, 5>()), sqlite3pp::column_count(*statement.statement));
+	BOOST_CHECK_EQUAL(static_cast<sqlite3_int64>(123), statement.column<0>());
 	BOOST_CHECK_EQUAL(456.0, statement.column<1>());
-	BOOST_CHECK(boost::range::equal(Si::make_c_str_range("abc"), statement.column<2>()));
-	BOOST_CHECK_EQUAL(-3, statement.column<3>());
+	Si::optional<Si::memory_range> const text = statement.column<2>();
+	BOOST_REQUIRE(text);
+	BOOST_CHECK(boost::range::equal(Si::make_c_str_range("abc"), *text));
+	BOOST_CHECK_EQUAL(static_cast<sqlite3_int64>(-3), statement.column<3>());
+	BOOST_CHECK(!statement.column<4>());
+	BOOST_CHECK_EQUAL(sqlite3pp::step_result::done, sqlite3pp::step(*statement.statement).get());
+}
+
+BOOST_AUTO_TEST_CASE(sqlite_checked_statement_text_column)
+{
+	sqlite3pp::database_handle database = sqlite3pp::open_existing(":memory:").move_value();
+	typedef boost::mpl::vector<> bound;
+	typedef boost::mpl::vector<Si::memory_range, Si::memory_range, Si::memory_range, Si::memory_range> columns;
+	sqlite3pp::checked_statement<bound, columns> statement =
+	    sqlite3pp::prepare_checked<bound, columns>(*database, "SELECT -3, 1.5, NULL, \"abc\"").move_value();
+	BOOST_REQUIRE_EQUAL(sqlite3pp::step_result::row, sqlite3pp::step(*statement.statement).get());
+	BOOST_REQUIRE_EQUAL((Si::literal<int, 4>()), sqlite3pp::column_count(*statement.statement));
+	BOOST_CHECK(!statement.column<0>());
+	BOOST_CHECK(!statement.column<1>());
+	BOOST_CHECK(!statement.column<2>());
+	Si::optional<Si::memory_range> const text = statement.column<3>();
+	BOOST_REQUIRE(text);
+	BOOST_CHECK(boost::range::equal(Si::make_c_str_range("abc"), *text));
+	BOOST_CHECK_EQUAL(sqlite3pp::step_result::done, sqlite3pp::step(*statement.statement).get());
+}
+
+BOOST_AUTO_TEST_CASE(sqlite_checked_statement_integer_column)
+{
+	sqlite3pp::database_handle database = sqlite3pp::open_existing(":memory:").move_value();
+	typedef boost::mpl::vector<> bound;
+	typedef boost::mpl::vector<sqlite3_int64, sqlite3_int64, sqlite3_int64, sqlite3_int64> columns;
+	sqlite3pp::checked_statement<bound, columns> statement =
+	    sqlite3pp::prepare_checked<bound, columns>(*database, "SELECT -3, 1.5, NULL, \"abc\"").move_value();
+	BOOST_REQUIRE_EQUAL(sqlite3pp::step_result::row, sqlite3pp::step(*statement.statement).get());
+	BOOST_REQUIRE_EQUAL((Si::literal<int, 4>()), sqlite3pp::column_count(*statement.statement));
+	BOOST_CHECK_EQUAL(static_cast<sqlite3_int64>(-3), statement.column<0>());
+	BOOST_CHECK(!statement.column<1>());
+	BOOST_CHECK(!statement.column<2>());
+	BOOST_CHECK(!statement.column<3>());
+	BOOST_CHECK_EQUAL(sqlite3pp::step_result::done, sqlite3pp::step(*statement.statement).get());
+}
+
+BOOST_AUTO_TEST_CASE(sqlite_checked_statement_float_column)
+{
+	sqlite3pp::database_handle database = sqlite3pp::open_existing(":memory:").move_value();
+	typedef boost::mpl::vector<> bound;
+	typedef boost::mpl::vector<double, double, double, double> columns;
+	sqlite3pp::checked_statement<bound, columns> statement =
+	    sqlite3pp::prepare_checked<bound, columns>(*database, "SELECT -3, 1.5, NULL, \"abc\"").move_value();
+	BOOST_REQUIRE_EQUAL(sqlite3pp::step_result::row, sqlite3pp::step(*statement.statement).get());
+	BOOST_REQUIRE_EQUAL((Si::literal<int, 4>()), sqlite3pp::column_count(*statement.statement));
+	BOOST_CHECK(!statement.column<0>());
+	BOOST_CHECK_EQUAL(1.5, statement.column<1>());
+	BOOST_CHECK(!statement.column<2>());
+	BOOST_CHECK(!statement.column<3>());
 	BOOST_CHECK_EQUAL(sqlite3pp::step_result::done, sqlite3pp::step(*statement.statement).get());
 }
